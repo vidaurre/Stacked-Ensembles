@@ -26,9 +26,7 @@ Nalpha = length(options.alpha);
 NM = length(options.M);
 npredtosample = round(options.alpha * p);
 NN = round(N/options.maxN); 
-if NN>1, segments = cvfolds(Y,'gaussian',NN); 
-else segments = cell(1); segments{1} = 1:N;
-end
+if NN>1, segments = cvfolds(Y,'gaussian',NN); end
 
 usedPred = cell(1,Nalpha);
 %models = cell(1,Nalpha);
@@ -98,19 +96,18 @@ for j=1:Nalpha
             bigKth0 = [Kth0(segments{nn},segments{nn}) + Lambda0(s,j) * ...
                 eye(Nsegment), ones(Nsegment,1); ones(1,Nsegment), 0];
             cb0 = bigKth0 \ [Y(segments{nn});0];
-            c0 = cb0(1:Nsegment);
+            c0 = cb0((segments{nn});
             b0 = cb0(Nsegment+1);
             G0 = zeros(Nsegment,d);
             for i = 1:d,
-                G0(:, i) = K3darray(segments{nn},segments{nn},i) * c0;
+                G0(:, i) = K3darray(1:N,1:N,i) * c0;
             end
             if interactions
                 index = d;
                 for i1 = 1:(d-1)
                     for i2 = (i1+1):d
                         index = index + 1;
-                        G0(:, index) = (K3darray(segments{nn},segments{nn},i1) .* ...
-                            K3darray(segments{nn},segments{nn},i2)) * c0;
+                        G0(:, index) = (K3darray(1:N,1:N,i1) .* K3darray(1:N,1:N,i2)) * c0;
                     end
                 end
             end
@@ -119,9 +116,9 @@ for j=1:Nalpha
             for im = 1:NM;
                 M = options.M(im);
                 if interactions
-                    fit = estimate_2way_spline(K3darray(segments{nn},segments{nn},:),Y(segments{nn}),d,G0,c0,b0,Lambda0(s,j),M);
+                    fit = estimate_2way_spline(K3darray(segments{nn},segments{nn},:),Y,d,G0,c0,b0,Lambda0(s,j),M);
                 else
-                    fit = estimate_add_spline(K3darray(segments{nn},segments{nn},:),Y(segments{nn}),d,G0,c0,b0,Lambda0(s,j),M);
+                    fit = estimate_add_spline(K3darray(segments{nn},segments{nn},:),Y,d,G0,c0,b0,Lambda0(s,j),M);
                 end
                 Kpred = zeros(Ntest, Nsegment);
                 theta = fit(Nsegment+1, 1:D);
@@ -138,7 +135,7 @@ for j=1:Nalpha
                         end
                     end
                 end
-                Yhatvec(:,nn,im) = Kpred * fit(1:Nsegment, D+1) + fit(Nsegment+1, D+1);    
+                Yhatvec(:,nn,im) = Kpred * fit(segments{nn}, D+1) + fit(Nsegment+1, D+1);    
             end
         end
         

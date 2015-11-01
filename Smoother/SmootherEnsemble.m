@@ -56,13 +56,13 @@ for j=1:Nalpha
             end
             for n=1:Ntest
                 if LOESS
-                    wd = sqrt(wd);
                     Xws = [ones(N,1) bsxfun(@minus,Xs,Xstest(n,:))];
                     Xws = Xws .* repmat(wd(:,n),1,size(Xws,2));
                     Yw = Y .* wd(:,n);
                     b = (Xws' * Xws + R) \ Xws' * Yw;
                     Yhat(n,s,r,j) = b(1);
                 else % Nadaraya-Watson estimator
+                    wd(wd~=0) = wd(wd~=0).^2;
                     Yhat(n,s,r,j) = sum(Y .* wd(:,n)) / sum(wd(:,n)); 
                 end
             end

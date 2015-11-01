@@ -1,4 +1,6 @@
 function W = kernelf(D,kernel,radius)
+% sqrt of the kernel
+
 if nargin<2, kernel='tricube'; end
 if strcmp(kernel,'uniform') && radius == 1; 
     W = ones(size(D)); return;
@@ -17,12 +19,12 @@ C = D<=1;
 if strcmp(kernel,'uniform')
     W(C) = 1;
 elseif strcmp(kernel,'tricube')
-    W(C) = (1-D(C).^3).^3;
+    W(C) = (1-D(C).^3).^(1.5);
 elseif strcmp(kernel,'gaussian')
-    W(C) = exp(-(D(C).^2)/2);
+    W(C) = sqrt(exp(-(D(C).^2)/2));
 elseif strcmp(kernel,'epanechnikov')
-    W(C) = (1 - D(C).^2);
+    W(C) = sqrt((1 - D(C).^2));
 elseif strcmp(kernel,'susan')
-    W(C) = exp((-D(C)).^6);
+    W(C) = sqrt(exp((-D(C)).^6));
 end
 end
