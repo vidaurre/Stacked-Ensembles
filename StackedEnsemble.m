@@ -43,9 +43,10 @@ switch options.Learners
         loess = strcmp(options.Learners,'LOESS');
         [YhatTrain,beta,my,usedPred,cvparameters,meanCVError] = ...
             SmootherEnsembleCV(X,Y,options,path,loess); 
-    case 'Linear', 
+    case {'Linear','Linear2way'} 
+        interactions = strcmp(options.Learners,'Linear2way');
         [YhatTrain,beta,my,usedPred,cvparameters,meanCVError] = ...
-            LinearEnsembleCV(X,Y,options,path); 
+            LinearEnsembleCV(X,Y,options,path,interactions); 
     case {'RKHSadd','RKHS2way'},
         interactions = strcmp(options.Learners,'RKHS2way');
         [YhatTrain,beta,my,usedPred,cvparameters,meanCVError] = ...
@@ -66,6 +67,13 @@ if path % work out the entire path of nlearn
         else
             models = zeros(options.nlearn(end),round(cvparameters.alpha * p)+1);
         end
+    elseif strcmp(options.Learners,'Linear2way')
+        if cvparameters.alpha>=1
+            pp = cvparameters.alpha;
+        else
+            pp = round(cvparameters.alpha * p);
+        end
+        models = zeros(options.nlearn(end),pp+(pp*(pp+1))/2+1);
     elseif strcmp(options.Learners,'Tree')
         models = cell(options.nlearn(end),1);
     end
@@ -79,9 +87,9 @@ if path % work out the entire path of nlearn
                 Yhatlearners{is} = ...
                     SmootherEnsemble(X,Y,Xtest,path_options,loess,prevfit);
                 prevfit = struct('Yhat',Yhatlearners{is});
-            case 'Linear'
+            case {'Linear','Linear2way'} 
                 path_options.usedPred = usedPred;
-                [Yhatlearners{is},~,m] = LinearEnsemble(X,Y,Xtest,path_options,prevfit);
+                [Yhatlearners{is},~,m] = LinearEnsemble(X,Y,Xtest,path_options,interactions,prevfit);
                 models(1:options.nlearn(is),:) = m;
                 prevfit = struct('Yhat',Yhatlearners{is},'models',m);
             case {'RKHSadd','RKHS2way'}
@@ -109,9 +117,9 @@ else % just the best nlearn
             options.radius = cvparameters.radius;
             options.usedPred = {}; options.usedPred{1} = usedPred;
             Yhatlearners = SmootherEnsemble(X,Y,Xtest,options,loess);
-        case 'Linear'
+        case {'Linear','Linear2way'} 
             options.usedPred = {}; options.usedPred{1} = usedPred;
-            [Yhatlearners,~,models] = LinearEnsemble(X,Y,Xtest,options);
+            [Yhatlearners,~,models] = LinearEnsemble(X,Y,Xtest,options,interactions);
         case {'RKHSadd','RKHS2way'}
             options.M = cvparameters.M; %options.lambda0 = cvparameters.lambda0;
             options.usedPred = {}; options.usedPred{1} = usedPred;

@@ -1,5 +1,5 @@
 function [YhatTrain,beta,my,usedPred,cvparameters,meanCVError] = ...
-    LinearEnsembleCV(X,Y,options,path)
+    LinearEnsembleCV(X,Y,options,path,interactions)
 % beta is the mixing coefficientws
 % alpha is the preferred no. of predictors, one per value of options.nlearn
 % nlearn is the number of learners eventually used, one per value of options.nlearn
@@ -29,10 +29,10 @@ for Qifold = 1:length(Qfolds)
     QJ = Qfolds{Qifold}; Qji=setdiff(1:N,QJ);
     QX=X(Qji,:);  QY=Y(Qji,:); QXJ=X(QJ,:);
     if Qifold==1
-        [Yhat(QJ,:,:),usedPred] = LinearEnsemble(QX,QY,QXJ,options);
+        [Yhat(QJ,:,:),usedPred] = LinearEnsemble(QX,QY,QXJ,options,interactions);
         options.usedPred = usedPred;
     else
-        Yhat(QJ,:,:) = LinearEnsemble(QX,QY,QXJ,options);
+        Yhat(QJ,:,:) = LinearEnsemble(QX,QY,QXJ,options,interactions);
     end
 end
 
