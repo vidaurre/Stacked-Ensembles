@@ -1,6 +1,6 @@
 function [Yhat,usedPred,models] = LinearEnsemble(X,Y,Xtest,options,interactions,prevfit)
 % Computes an ensemble of linear regressors
-
+ 
 [N,p] = size(X);
 Ntest = size(Xtest,1);
 
@@ -14,6 +14,7 @@ if any(options.alpha>=1), % expressed in terms of absolute no. of predictors
     options.alpha(options.alpha>=1) = options.alpha(options.alpha>=1) / p; 
 end 
 if any(options.alpha==0), options.alpha(options.alpha==0) = 1; end % all predictors
+if ~isfield(options,'maxN'), options.maxN = N; end
 
 mx = mean(X);
 X = bsxfun(@minus,X,mx);
@@ -21,6 +22,10 @@ Xtest = bsxfun(@minus,Xtest,mx);
 nlearn = options.nlearn(end); 
 Nalpha = length(options.alpha); 
 npredtosample = round(options.alpha * p);
+NN = round(N/options.maxN); 
+if NN>1, segments = cvfolds(Y,'gaussian',NN); 
+else segments = cell(1); segments{1} = 1:N;
+end
 
 usedPred = cell(1,Nalpha);
 if interactions
@@ -67,12 +72,20 @@ for j=1:Nalpha
             end
             Xs = [Xs Xs2way];
             Xstest = [Xstest Xstest2way];
+        end  
+        R = 1e-10 * diag([0 (ones(1,size(Xs,2)-1))]);
+        Yhat_segm = zeros(Ntest,NN);
+        models_segm = zeros(NN,npredtosample(j)+quad_terms(j)+1);
+        for nn=1:NN
+            Nsegment = length(segments{nn});
+            b = (Xs(segments{nn},:)' * Xs(segments{nn},:) + R) \ Xs(segments{nn},:)' * Y(segments{nn});
+            models_segm(nn,:) = b';
+            Yhat_segm(:,nn) = Xstest * b;
         end
-        b = (Xs' * Xs) \ Xs' * Y;
-        if Nalpha>1, models{j}(s,:) = b';
-        else models(s,:) = b';
+        Yhat(:,s,j) = mean(Yhat_segm,2);
+        if Nalpha>1, models{j}(s,:) = mean(models_segm,1);
+        else models(s,:) = mean(models_segm,1);
         end
-        Yhat(:,s,j) = Xstest * b;         
     end
     
 end

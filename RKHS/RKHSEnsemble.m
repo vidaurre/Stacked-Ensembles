@@ -16,7 +16,7 @@ if any(options.alpha==0), options.alpha(options.alpha==0) = 1; end % all predict
 if ~isfield(options,'M'), options.M = [10, 25, 35]; end % smoothness parameter
 if ~isfield(options,'CVRKHS'), options.CVRKHS = 5; end % CVscheme for RKHS stuff
 if ~isfield(options,'lambda0'), options.lambda0 = 2.^(-(1:2:14)); end % CVscheme for RKHS stuff
-if ~isfield(options,'maxN'), options.maxN = 500; end
+if ~isfield(options,'maxN'), options.maxN = N; end
 
 mx = mean(X); my = mean(Y); Y = Y - my;
 X = bsxfun(@minus,X,mx);
@@ -84,20 +84,20 @@ for j=1:Nalpha
             Lambda0vec = zeros(NN,1);
             for nn=1:NN
                 Lambda0vec(nn) = estimate_lambda0(Kth0(segments{nn},segments{nn}), Y(segments{nn}), ...
-                    options.CVRKHS, options.lambda0);
+                    options.CVRKHS, options.lambda0); % N x N matrix inversion (CVRKHS times)
             end
             Lambda0(s,j) = median(Lambda0vec);
         else
             Lambda0(s,j) = options.lambda0;
         end
         
-        Yhatvec = zeros(Ntest,NN,NM);
+        Yhat_segm = zeros(Ntest,NN,NM);
         
         for nn=1:NN
             Nsegment = length(segments{nn});
             bigKth0 = [Kth0(segments{nn},segments{nn}) + Lambda0(s,j) * ...
                 eye(Nsegment), ones(Nsegment,1); ones(1,Nsegment), 0];
-            cb0 = bigKth0 \ [Y(segments{nn});0];
+            cb0 = bigKth0 \ [Y(segments{nn});0]; % N x N matrix inversion
             c0 = cb0(1:Nsegment);
             b0 = cb0(Nsegment+1);
             G0 = zeros(Nsegment,d);
@@ -118,7 +118,7 @@ for j=1:Nalpha
             % compute splines for each level of smoothness (regularization)
             for im = 1:NM;
                 M = options.M(im);
-                if interactions
+                if interactions % N x N matrix inversions (NM times)
                     fit = estimate_2way_spline(K3darray(segments{nn},segments{nn},:),Y(segments{nn}),d,G0,c0,b0,Lambda0(s,j),M);
                 else
                     fit = estimate_add_spline(K3darray(segments{nn},segments{nn},:),Y(segments{nn}),d,G0,c0,b0,Lambda0(s,j),M);
@@ -138,12 +138,12 @@ for j=1:Nalpha
                         end
                     end
                 end
-                Yhatvec(:,nn,im) = Kpred * fit(1:Nsegment, D+1) + fit(Nsegment+1, D+1);    
+                Yhat_segm(:,nn,im) = Kpred * fit(1:Nsegment, D+1) + fit(Nsegment+1, D+1);    
             end
         end
         
         for im = 1:NM;
-            Yhat(:,s,im,j) = median(Yhatvec(:,:,im),2);
+            Yhat(:,s,im,j) = mean(Yhat_segm(:,:,im),2);
         end
             
     end 

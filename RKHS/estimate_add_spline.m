@@ -14,7 +14,7 @@ for inneriter = 1:d
     Kth = Kth + theta(inneriter) * K3d(:,:, inneriter);
 end
 
-bigKth = [Kth + lambda0 * eye(n), ones(n,1); ones(1,n), 0];
+bigKth = [Kth + lambda0 * eye(n), ones(n,1); ones(1,n), 0]; % N x N matrix inversion
 cb = bigKth \ [y;0];
 c = cb(1:n);
 b = cb(n+1);
